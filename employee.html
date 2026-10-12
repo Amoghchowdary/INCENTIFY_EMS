@@ -4,12 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b477a">
-  <meta name="description" content="INCENTIFY EMS V20 Employee Portal — read-only attendance and shift checkout.">
+  <meta name="description" content="INCENTIFY EMS V21 Employee Portal — admin-controlled facial recognition, attendance history and shift checkout.">
   <meta name="robots" content="noindex,nofollow">
   <title>INCENTIFY EMS — Employee Portal</title>
   <link rel="icon" href="./assets/icon-192.png">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./css/app.css?v=20.0.0">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="./css/app.css?v=21.0.0">
 </head>
 <body data-portal="employee">
 <div id="toastStack" class="toast-stack" aria-live="polite"></div>
@@ -21,8 +23,42 @@
 
   <main class="employee-portal-main">
     <section class="employee-welcome">
-      <div><p class="eyebrow">EMPLOYEE SELF SERVICE</p><h1 id="employeeWelcomeName">Welcome</h1><p class="muted">Check-in is completed only from the secure email attendance link. This portal is for your attendance history and shift checkout.</p></div>
+      <div><p class="eyebrow">EMPLOYEE SELF SERVICE</p><h1 id="employeeWelcomeName">Welcome</h1><p class="muted">Facial recognition capture is available only here in the Employee Portal and only while Admin has enabled Face Capture Access for your profile.</p></div>
       <div class="employee-code-badge"><small>EMPLOYEE CODE</small><b id="selfEmployeeCode">—</b></div>
+    </section>
+
+    <section id="faceRegistrationPanel" class="panel employee-face-panel">
+      <div class="panel-head">
+        <div><p class="eyebrow">FACIAL RECOGNITION</p><h3>Face Capture & Verification</h3><p class="muted">This is the only place where an employee face can be registered or replaced. Admin controls access. Face capture never asks for location permission.</p></div>
+        <span id="faceRegistrationBadge" class="badge badge-neutral">ACCESS OFF</span>
+      </div>
+      <div class="face-registration-grid">
+        <div class="employee-face-camera">
+          <video id="faceRegistrationVideo" autoplay muted playsinline></video>
+          <div class="face-guide" aria-hidden="true"><div class="face-guide-oval"></div></div>
+          <div id="faceRegistrationPlaceholder" class="camera-placeholder"><span>◎</span><b>Camera is off</b><small>Admin must enable Face Capture Access first.</small></div>
+          <div id="faceRegistrationProgress" class="face-progress">Ready</div>
+        </div>
+        <div class="face-registration-info">
+          <p class="eyebrow">CAPTURE ACCESS</p><h3 id="faceRegistrationState">Waiting for Admin</h3>
+          <p id="faceRegistrationDetail" class="muted">Ask Admin to select your employee profile and switch Face Capture Access ON.</p>
+          <div class="face-quality-grid">
+            <div><small>Samples</small><b id="faceSampleProgress">0 / 5</b></div>
+            <div><small>Quality</small><b id="faceQualityState">Waiting</b></div>
+            <div><small>Profile</small><b id="faceProfileState">Not registered</b></div>
+          </div>
+          <ol class="face-capture-steps">
+            <li>Use a well-lit area and keep only one face in the frame.</li>
+            <li>Look straight at the camera and keep your full face inside the guide.</li>
+            <li>Hold naturally while five consistent samples are captured.</li>
+          </ol>
+          <div class="face-registration-actions">
+            <button id="faceRegisterBtn" class="btn btn-primary" disabled>Capture & verify face</button>
+            <button id="faceStopBtn" class="btn btn-ghost hidden">Stop camera</button>
+          </div>
+          <small class="muted">After successful verification, Face Capture Access switches OFF automatically. Verified employee details are emailed to the employee and configured Admin copy. The biometric descriptor itself is never emailed.</small>
+        </div>
+      </div>
     </section>
 
     <section class="employee-metric-grid">
@@ -52,9 +88,12 @@
         </div>
         <p id="checkoutMessage" class="muted">Your checkout time is calculated from your actual IN time.</p>
         <button id="checkoutBtn" class="btn btn-primary btn-block" disabled>Check out</button>
-        <small class="muted">Checkout requires precise mobile location inside the office geofence. Identity verification is handled outside this portal through the secure attendance link.</small>
+        <small class="muted">Checkout requires precise mobile location inside the office geofence. Face registration is handled in this portal only while Admin has Face Capture Access enabled. Checkout still requires office geofence validation.</small>
       </article>
     </section>
+
+
+
 
     <section class="panel employee-attendance-panel">
       <div class="panel-head"><div><p class="eyebrow">READ-ONLY HISTORY</p><h3>My Attendance</h3></div><span class="badge badge-success">Cannot modify</span></div>
@@ -68,8 +107,8 @@
     </section>
   </main>
 </div>
-<script src="./js/config.js?v=20.0.0"></script>
-<script src="./js/api-client.js?v=20.0.0"></script>
-<script type="module" src="./js/employee.js?v=20.0.0"></script>
+<script src="./js/config.js?v=21.0.0"></script>
+<script src="./js/api-client.js?v=21.0.0"></script>
+<script type="module" src="./js/employee.js?v=21.0.0"></script>
 </body>
 </html>

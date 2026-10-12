@@ -1,19 +1,54 @@
-INCENTIFY EMS V20.0.0 — VALIDATION REPORT
-==========================================
-Scope: production attendance capture, face-quality policy, office geofence, selection controls, and report/backup download reliability.
+INCENTIFY EMS V21.0.0 VALIDATION REPORT
 
-Required verified behavior:
-- Backend and frontend version: 20.0.0.
-- Production database ID unchanged.
-- Office center: 17.4982778, 78.3845000.
-- Enrollment uses 7 verified face samples.
-- Attendance verification uses 5 verified face samples.
-- Capture requires identity, location and biometric confirmation checkboxes.
-- Server validates location before face submission.
-- Detection confidence, lighting, consistency and movement metadata are server-enforced.
-- Employee and Access tables have explicit selection checkboxes.
-- XLSX and backup ZIP download through authenticated chunk APIs; no private Drive URL popup.
-- Browser verifies SHA-256 when Web Crypto is available.
-- Secure download final chunks are replayable until the short-lived ticket expires.
+Release purpose:
+Admin-controlled facial-recognition capture inside the authenticated Employee Portal, with no enrollment-link capture and no geolocation during face registration.
 
-Security note: browser active-movement verification is not equivalent to dedicated depth-sensing anti-spoofing hardware.
+Completed static/local validation:
+- Frontend structural/regression verification: 49/49 PASS
+- API transport/replay unit tests: 9/9 PASS
+- Backend structural/regression verification: 26/26 PASS
+- Attendance/time tests: 7/7 PASS
+- Frontend JavaScript syntax: PASS
+- Apps Script JavaScript syntax: PASS
+- Duplicate HTML IDs: NONE
+- Duplicate backend function definitions: NONE
+
+Local HTTP smoke test:
+- index.html 200
+- admin.html 200
+- employee.html 200
+- attendance.html 200
+- js/config.js 200
+- js/api-client.js 200
+- js/admin.js 200
+- js/employee.js 200
+- js/attendance.js 200
+- css/app.css 200
+- sw.js 200
+
+Key V21 regression targets:
+- Admin explicit Face Capture Access ON/OFF
+- Employee cannot self-enable face capture
+- No enrollment-link registration button/flow
+- Employee Portal camera capture does not request location
+- Five sample capture + descriptor consistency check
+- Camera permissions/device errors are human-readable
+- Laptop camera fallback constraints
+- CDN fallback for face-api engine/models
+- Successful registration auto-disables capture access
+- Verified details email excludes biometric descriptor
+- Attendance link still requires office location + stored face match
+- 8-hour checkout preserved
+- Admin/employee modal/access/mail fixes preserved
+- Persistent mutation replay safety preserved
+- V21 service worker invalidates stale V20 cache
+
+Live acceptance still required after Apps Script deployment:
+1. runInitialSetup
+2. runV21BackendDiagnostics
+3. verifyAttendanceMailSender
+4. test-v21-deployment.ps1
+5. test-v21-backend.ps1
+6. Real employee face capture on laptop/mobile
+7. Verification email delivery
+8. Attendance match against the newly registered face

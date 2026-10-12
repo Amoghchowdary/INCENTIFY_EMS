@@ -1,48 +1,83 @@
 const cfg=window.INCENTIFY_EMS_CONFIG,api=window.incentifyEmsApi,$=(s,r=document)=>r.querySelector(s);
 const token=new URLSearchParams(location.search).get('token')||'';
-const state={context:null,location:null,models:false,stream:null,locationValidated:false,capturing:false};
+const state={context:null,location:null,models:false,stream:null};
 function toast(m,t='info',ms=4200){const e=document.createElement('div');e.className='toast '+t;e.textContent=m;$('#toastStack').appendChild(e);setTimeout(()=>e.remove(),ms)}
-function busy(b,on,label){if(!b)return;if(on){b.dataset.old=b.textContent;b.disabled=true;b.textContent=label}else{b.textContent=b.dataset.old||b.textContent;updateCaptureButton()}}
+function busy(b,on,label){if(on){b.dataset.old=b.textContent;b.disabled=true;b.textContent=label}else{b.disabled=false;b.textContent=b.dataset.old||b.textContent}}
 function status(title,text,type=''){$('#linkStatusTitle').textContent=title;$('#linkStatusText').textContent=text;$('#linkStatusBox').className='portal-notice '+type}
 const fmt=v=>{const d=new Date(v);return isNaN(d)?String(v):d.toLocaleString([], {dateStyle:'medium',timeStyle:'short'})};
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-function allConsented(){return Boolean($('#consentIdentity')?.checked&&$('#consentLocation')?.checked&&$('#consentBiometric')?.checked)}
-function updateCaptureButton(){const b=$('#linkCaptureBtn');if(!b)return;b.disabled=state.capturing||!allConsented();}
-function bindConsent(){['#consentIdentity','#consentLocation','#consentBiometric'].forEach(id=>$(id)?.addEventListener('change',()=>{updateCaptureButton();if($('#consentLocation')?.checked&&!state.locationValidated)$('#linkChallengeText').textContent='Checklist accepted. Validate office location, then follow the face prompts.'}));updateCaptureButton()}
-function facePolicy(){const p=state.context?.facePolicy||{};return{sampleTarget:Math.max(3,Number(p.sampleTarget||5)),minDetectionScore:Number(p.minDetectionScore||0.65),minBrightness:Number(p.minBrightness||45),maxBrightness:Number(p.maxBrightness||225),maxDescriptorSpread:Number(p.maxDescriptorSpread||0.42)}}
 async function init(){
-  bindConsent();
   if(!token){status('Invalid link','The attendance token is missing.','error');return}
   try{
     const r=await api.call('getAttendanceLinkContext',{attendanceToken:token},20000);state.context=r;
     if(r.state==='USED'){
       const done=r.completedResult||null;
-      if(done&&done.action==='ENROLLED'){$('#captureContent').classList.add('hidden');$('#linkSuccess').classList.remove('hidden');$('#linkSuccessTitle').textContent='Face enrollment already completed';$('#linkSuccessText').textContent=`Your face enrollment was saved successfully${done.sampleCount?` using ${done.sampleCount} verified samples`:''}. No recapture is required.`;status('Completed','The server confirmed this enrollment was already completed.','success');return}
       if(done&&done.action==='IN'){$('#captureContent').classList.add('hidden');$('#linkSuccess').classList.remove('hidden');$('#linkSuccessTitle').textContent='Attendance already recorded';$('#linkSuccessText').textContent=done.punch&&done.punch.requiredOutAt?`Your IN attendance is recorded. Earliest checkout: ${fmt(done.punch.requiredOutAt)}.`:'Your IN attendance was recorded successfully.';status('Completed','The server confirmed this attendance link was already completed.','success');return}
       status('Link already used',r.message||'This link has already been used.','success');return
     }
     $('#captureContent').classList.remove('hidden');$('#linkEmployeeName').textContent=r.employee.fullName;$('#linkEmployeeCode').textContent=r.employee.employeeCode;$('#linkDate').textContent=r.date;$('#linkExpiry').textContent=fmt(r.validUntil);
-    const p=facePolicy();$('#linkSamplePolicy').textContent=`${p.sampleTarget} verified face samples`;$('#qualitySamples').textContent=`0 / ${p.sampleTarget}`;
-    status(r.linkType==='ENROLL'?'Face enrollment link':'Attendance link',r.linkType==='ENROLL'?`Production enrollment requires ${p.sampleTarget} quality-gated face samples plus office-location validation.`:`Production attendance requires ${p.sampleTarget} quality-gated verification samples plus office-location validation.`,'success');
+    status('Attendance link','This link is active. Complete office-location and face verification before it expires. Face registration itself is managed only inside the Employee Portal.','success');
     $('#linkCheckLocationBtn').onclick=checkLocation;$('#linkCaptureBtn').onclick=captureAndSubmit;const warm=()=>models().catch(()=>{});if('requestIdleCallback'in window)requestIdleCallback(warm,{timeout:1200});else setTimeout(warm,350);
   }catch(e){status('Attendance link unavailable',e.message,'error')}
 }
-function preciseLocation(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(new Error('Location is not supported by this browser.'));navigator.geolocation.getCurrentPosition(p=>resolve({latitude:Number(p.coords.latitude),longitude:Number(p.coords.longitude),accuracy:Number(p.coords.accuracy),capturedAt:new Date().toISOString()}),e=>reject(new Error(e.code===1?'Allow precise location to continue.':(e.message||'Could not read your location.'))),{enableHighAccuracy:true,timeout:18000,maximumAge:0})})}
-async function checkLocation(){const b=$('#linkCheckLocationBtn');if(!$('#consentLocation')?.checked){const e=new Error('Tick the precise-location checkbox before validating your office location.');toast(e.message,'error');throw e}busy(b,true,'Validating…');try{const location=await preciseLocation();const r=await api.call('validateAttendanceLocation',{attendanceToken:token,location},20000);state.location=location;state.locationValidated=true;const p=r.presence||{};$('#linkLocationState').textContent='Inside office geofence';$('#linkLocationDetail').textContent=`Server verified ${Math.round(Number(p.distanceMeters||0))} m from office center • GPS accuracy ±${Math.round(location.accuracy)} m • allowed radius ${Math.round(Number(p.radiusMeters||state.context?.location?.radiusMeters||0))} m.`;$('#linkChallengeText').textContent='Location passed. Keep one face in frame and follow the movement prompts.';toast('Office location verified by the server.','success');return location}catch(e){state.location=null;state.locationValidated=false;$('#linkLocationState').textContent='Location not verified';$('#linkLocationDetail').textContent=e.message;toast(e.message,'error');throw e}finally{busy(b,false)}}
-async function models(){if(state.models)return;if(!window.faceapi){await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=cfg.FACE_LIBRARY_URL;s.onload=resolve;s.onerror=()=>reject(new Error('Face verification library could not load.'));document.head.appendChild(s)})}await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(cfg.FACE_MODEL_URL),faceapi.nets.faceLandmark68Net.loadFromUri(cfg.FACE_MODEL_URL),faceapi.nets.faceRecognitionNet.loadFromUri(cfg.FACE_MODEL_URL)]);state.models=true}
-async function startCamera(){if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera access is not supported by this browser.');state.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:960},height:{ideal:720}},audio:false});const v=$('#linkVideo');v.srcObject=state.stream;await v.play();$('#linkCameraPlaceholder').classList.add('hidden')}
-function stopCamera(){if(state.stream){state.stream.getTracks().forEach(t=>t.stop());state.stream=null}const v=$('#linkVideo');if(v)v.srcObject=null;$('#linkCameraPlaceholder')?.classList.remove('hidden')}
+function preciseLocation(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(new Error('Location is not supported by this browser.'));navigator.geolocation.getCurrentPosition(p=>resolve({latitude:Number(p.coords.latitude),longitude:Number(p.coords.longitude),accuracy:Number(p.coords.accuracy),capturedAt:new Date().toISOString()}),e=>reject(new Error(e.code===1?'Allow precise location to continue.':(e.message||'Could not read your location.'))),{enableHighAccuracy:true,timeout:15000,maximumAge:0})})}
+async function checkLocation(){const b=$('#linkCheckLocationBtn');busy(b,true,'Locating…');try{state.location=await preciseLocation();$('#linkLocationState').textContent='Location captured';$('#linkLocationDetail').textContent=`Accuracy ±${Math.round(state.location.accuracy)} m. Final office-radius validation happens on the server when attendance is submitted.`;toast('Location captured.','success');return state.location}catch(e){state.location=null;$('#linkLocationState').textContent='Location blocked';$('#linkLocationDetail').textContent=e.message;toast(e.message,'error');throw e}finally{busy(b,false)}}
+function loadScript(url){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=url;s.async=true;s.crossOrigin='anonymous';s.onload=resolve;s.onerror=()=>reject(new Error('load failed'));document.head.appendChild(s)})}
+async function models(){
+  if(state.models)return;
+  if(!window.faceapi){
+    let ok=false;for(const url of (cfg.FACE_LIBRARY_URLS||[cfg.FACE_LIBRARY_URL]).filter(Boolean)){try{await loadScript(url);if(window.faceapi){ok=true;break}}catch(_){}}
+    if(!ok)throw new Error('Face verification engine could not load. Check internet access and reload this page.');
+  }
+  let last=null;
+  for(const base of (cfg.FACE_MODEL_URLS||[cfg.FACE_MODEL_URL]).filter(Boolean)){
+    try{await Promise.all([faceapi.nets.tinyFaceDetector.loadFromUri(base),faceapi.nets.faceLandmark68Net.loadFromUri(base),faceapi.nets.faceRecognitionNet.loadFromUri(base)]);state.models=true;return}catch(e){last=e}
+  }
+  throw new Error('Face verification models could not load. Check the network and try again.');
+}
+async function startCamera(){
+  if(!window.isSecureContext)throw new Error('Camera access requires HTTPS.');
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('Camera capture is not supported by this browser.');
+  try{state.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'},width:{ideal:1280},height:{ideal:720}},audio:false})}
+  catch(_){state.stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false})}
+  const v=$('#linkVideo');v.srcObject=state.stream;await v.play();const started=Date.now();while((v.readyState<2||!v.videoWidth)&&Date.now()-started<5000)await new Promise(r=>setTimeout(r,100));if(!v.videoWidth)throw new Error('Camera opened but no video frames were received.');$('#linkCameraPlaceholder').classList.add('hidden')
+}
+function stopCamera(){if(state.stream){state.stream.getTracks().forEach(t=>t.stop());state.stream=null}$('#linkVideo').srcObject=null;$('#linkCameraPlaceholder').classList.remove('hidden')}
+function distance(a,b){if(a.length!==b.length)return Infinity;let s=0;for(let i=0;i<a.length;i++){const d=Number(a[i])-Number(b[i]);s+=d*d}return Math.sqrt(s)}
 function avg(ds){const out=new Array(ds[0].length).fill(0);ds.forEach(d=>d.forEach((v,i)=>out[i]+=Number(v)));for(let i=0;i<out.length;i++)out[i]/=ds.length;const n=Math.sqrt(out.reduce((s,v)=>s+v*v,0))||1;return out.map(v=>Number((v/n).toFixed(8)))}
-function distance(a,b){let sum=0;for(let i=0;i<a.length;i++){const d=Number(a[i])-Number(b[i]);sum+=d*d}return Math.sqrt(sum)}
-function descriptorSpread(ds,mean){return Math.max(...ds.map(d=>distance(d,mean)))}
-function videoBrightness(video){const c=document.createElement('canvas'),w=96,h=72;c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(video,0,0,w,h);const data=x.getImageData(0,0,w,h).data;let total=0,n=0;for(let i=0;i<data.length;i+=16){total+=(data[i]+data[i+1]+data[i+2])/3;n++}return n?total/n:0}
-function faceAreaRatio(found,video){const b=found.detection.box,den=Math.max(1,video.videoWidth*video.videoHeight);return (b.width*b.height)/den}
-function promptFor(i,total){if(i===0)return'Look straight at the camera';if(i===1)return'Turn your face slightly to your left';if(i===2)return'Turn your face slightly to your right';if(i===3)return'Return to the center';if(i===4)return'Move slightly closer, keeping your whole face visible';return `Hold a natural angle for sample ${i+1} of ${total}`}
-async function qualitySample(video,policy,i,total){$('#linkChallengeText').textContent=promptFor(i,total);await sleep(i===0?650:520);let best=null;for(let a=0;a<18;a++){const found=await faceapi.detectSingleFace(video,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:Math.max(.5,policy.minDetectionScore-.08)})).withFaceLandmarks().withFaceDescriptor();if(found&&(!best||found.detection.score>best.detection.score))best=found;if(found&&found.detection.score>=policy.minDetectionScore)break;await sleep(160)}if(!best)throw new Error('No face was detected. Use even front lighting and keep one face in frame.');const score=Number(best.detection.score||0);if(score<policy.minDetectionScore)throw new Error(`Face detection confidence ${Math.round(score*100)}% is below the required ${Math.round(policy.minDetectionScore*100)}%. Improve lighting and retry.`);const area=faceAreaRatio(best,video);if(area<0.055)throw new Error('Move closer to the camera so your face is large enough for verification.');if(area>0.60)throw new Error('Move slightly away from the camera so your full face remains visible.');const brightness=videoBrightness(video);if(brightness<policy.minBrightness||brightness>policy.maxBrightness)throw new Error(`Lighting quality is outside the allowed range (${Math.round(brightness)}). Use even front lighting and avoid strong backlight.`);return{descriptor:[...best.descriptor],score,brightness,center:{x:(best.detection.box.x+best.detection.box.width/2)/Math.max(1,video.videoWidth),y:(best.detection.box.y+best.detection.box.height/2)/Math.max(1,video.videoHeight)},area}}
-async function captureAndSubmit(){const b=$('#linkCaptureBtn');if(!allConsented()){toast('Confirm all three verification checkboxes first.','error');return}state.capturing=true;busy(b,true,'Preparing…');try{if(!state.locationValidated||!state.location||Date.now()-new Date(state.location.capturedAt).getTime()>60000)await checkLocation();await models();await startCamera();const video=$('#linkVideo'),policy=facePolicy(),samples=[],centres=[],scores=[],brightnesses=[];for(let i=0;i<policy.sampleTarget;i++){const q=await qualitySample(video,policy,i,policy.sampleTarget);samples.push(q.descriptor);centres.push(q.center);scores.push(q.score);brightnesses.push(q.brightness);$('#qualitySamples').textContent=`${i+1} / ${policy.sampleTarget}`;$('#qualityDetection').textContent=`${Math.round(Math.min(...scores)*100)}% min`;$('#qualityLighting').textContent=`${Math.round(brightnesses.reduce((a,c)=>a+c,0)/brightnesses.length)}`;$('#linkCaptureProgress').textContent=`Verified sample ${i+1} / ${policy.sampleTarget}`}
-    const mean=avg(samples);let movement=0;for(let i=1;i<centres.length;i++){const dx=centres[i].x-centres[i-1].x,dy=centres[i].y-centres[i-1].y;movement+=Math.sqrt(dx*dx+dy*dy)}const spread=descriptorSpread(samples,mean),minScore=Math.min(...scores),avgBrightness=brightnesses.reduce((a,c)=>a+c,0)/brightnesses.length;$('#qualityConsistency').textContent=spread.toFixed(3);if(movement<0.035)throw new Error('Active movement verification did not pass. Follow the left/right movement prompts more clearly and retry.');if(spread>policy.maxDescriptorSpread)throw new Error('Face samples were inconsistent. Keep only one face in frame and retry.');
-    $('#linkChallengeText').textContent='Quality checks passed. Submitting securely…';$('#linkCaptureProgress').textContent=state.context?.linkType==='ENROLL'?'Saving face securely…':'Recording attendance…';stopCamera();status('Secure submission in progress','Keep this page open while the verified face descriptor and attendance result are committed.');
-    const captureMeta={sampleCount:samples.length,minDetectionScore:minScore,averageBrightness:avgBrightness,descriptorSpread:spread,movement,activeChallengePassed:true};const r=await api.call('submitAttendanceLinkFace',{attendanceToken:token,descriptor:mean,livenessPassed:true,location:state.location,deviceName:'Mobile attendance link',captureMeta},70000);
-    $('#captureContent').classList.add('hidden');$('#linkSuccess').classList.remove('hidden');if(r.action==='ENROLLED'){$('#linkSuccessTitle').textContent='Face enrollment completed';$('#linkSuccessText').textContent=`Enrollment saved using ${r.sampleCount||samples.length} quality-gated face samples. Future check-in links will verify against this enrollment.`}else{$('#linkSuccessTitle').textContent='IN attendance recorded';const confidence=r.face?.confidence!=null?` Face match confidence: ${Math.round(Number(r.face.confidence)*100)}%.`:'';$('#linkSuccessText').textContent=`Checked in at ${fmt(r.punch.punchTime)}.${confidence} Earliest checkout: ${fmt(r.punch.requiredOutAt)} after completing the full ${Number(r.punch.shiftMinutes||480)/60}-hour shift.`}status('Completed',r.replayed?'The server recovered the completed submission after a temporary network delay. This secure link is now consumed.':'This secure link has been consumed and cannot be used again.','success')
-  }catch(e){stopCamera();$('#linkCaptureProgress').textContent='Ready';$('#qualitySamples').textContent=`0 / ${facePolicy().sampleTarget}`;const msg=e&&e.message?e.message:'Secure submission could not be confirmed.';status('Submission not confirmed',msg,'error');toast(msg,'error',6500)}finally{state.capturing=false;busy(b,false)}}
+async function captureAndSubmit(){
+  const b=$('#linkCaptureBtn');busy(b,true,'Preparing…');
+  try{
+    if(!state.location||Date.now()-new Date(state.location.capturedAt).getTime()>60000)await checkLocation();
+    await models();await startCamera();const video=$('#linkVideo'),samples=[];
+    const options=new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:.5});
+    for(let i=1;i<=3;i++){
+      let found=null,lastHint='Face not detected clearly.';
+      for(let a=0;a<24&&!found;a++){
+        const ds=await faceapi.detectAllFaces(video,options).withFaceLandmarks().withFaceDescriptors();
+        if(ds.length>1)lastHint='Only one person should be visible.';
+        else if(ds.length===1){
+          const d=ds[0],box=d.detection.box,w=video.videoWidth||1,h=video.videoHeight||1,ratio=Math.min(box.width/w,box.height/h);
+          if(Number(d.detection.score||0)<.52)lastHint='Improve lighting and face the camera.';
+          else if(ratio<.14)lastHint='Move a little closer to the camera.';
+          else found=d;
+        }
+        if(!found){$('#linkCaptureProgress').textContent=`Sample ${i}/3 • ${lastHint}`;await new Promise(r=>setTimeout(r,160))}
+      }
+      if(!found)throw new Error(lastHint+' Then try again.');
+      samples.push([...found.descriptor]);$('#linkCaptureProgress').textContent=`Face sample ${i} / 3`;await new Promise(r=>setTimeout(r,250))
+    }
+    const mean=avg(samples),maxDistance=Math.max(...samples.map(s=>distance(s,mean)));
+    if(maxDistance>.52)throw new Error('Face samples were not consistent. Keep the same face centered and try again.');
+    $('#linkCaptureProgress').textContent='Recording attendance…';stopCamera();
+    status('Secure submission in progress','Keep this page open while attendance is verified. On slower networks this may take a few seconds.');
+    const r=await api.call('submitAttendanceLinkFace',{attendanceToken:token,descriptor:mean,livenessPassed:true,location:state.location,deviceName:'Mobile attendance link'},70000);
+    $('#captureContent').classList.add('hidden');$('#linkSuccess').classList.remove('hidden');
+    $('#linkSuccessTitle').textContent='IN attendance recorded';
+    $('#linkSuccessText').textContent=`Checked in at ${fmt(r.punch.punchTime)}. Your earliest checkout is ${fmt(r.punch.requiredOutAt)} after completing the full ${Number(r.punch.shiftMinutes||480)/60}-hour shift.`;
+    status('Completed',r.replayed?'The server recovered the completed submission after a temporary network delay. This secure link is now consumed.':'This secure link has been consumed and cannot be used again.','success')
+  }catch(e){
+    stopCamera();$('#linkCaptureProgress').textContent='Ready';const msg=e&&e.message?e.message:'Secure submission could not be confirmed.';
+    status('Submission not confirmed',msg,'error');toast(msg,'error',6500)
+  }finally{busy(b,false)}
+}
 window.addEventListener('beforeunload',stopCamera);init();

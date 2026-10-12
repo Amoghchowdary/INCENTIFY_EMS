@@ -1,4 +1,4 @@
-name: Deploy INCENTIFY EMS V20
+name: Deploy INCENTIFY EMS V21
 
 on:
   push:
@@ -22,8 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify V20
-        run: node scripts/verify-v20.mjs
+      - name: Verify V21
+        run: node scripts/verify-v21.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

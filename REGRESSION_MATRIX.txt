@@ -1,24 +1,37 @@
-INCENTIFY EMS V20.0.0 — REGRESSION MATRIX
-==========================================
-[ ] Admin OTP login
-[ ] Employee OTP login
-[ ] Employee CRUD and protected access rules
-[ ] Face enrollment link opens only for intended employee
-[ ] Three consent checkboxes required before capture
-[ ] Location rejected outside office / low GPS accuracy
-[ ] Exact office center is 17.4982778, 78.3845000
-[ ] Enrollment captures 7 quality-gated samples
-[ ] Attendance captures 5 quality-gated samples
-[ ] Poor lighting / low confidence / inconsistent samples rejected
-[ ] Active movement prompt failure rejected
-[ ] Attendance IN succeeds only after location + face match
-[ ] 480-minute checkout rule preserved
-[ ] Sunday/holiday rule preserved
-[ ] Employee table checkbox selection works
-[ ] Access table checkbox selection works
-[ ] XLSX downloads directly in browser
-[ ] Backup downloads as ZIP directly in browser
-[ ] Download SHA-256 verification succeeds
-[ ] Private Drive archives remain private
-[ ] Mail diagnostics and attendance email flow preserved
-[ ] Production database unchanged
+INCENTIFY EMS V21 REGRESSION MATRIX
+
+FACIAL RECOGNITION
+PASS - Admin explicit Enable/Disable Face Capture Access.
+PASS - Employee cannot enable access for themselves.
+PASS - Face capture/register exists only in authenticated Employee Portal.
+PASS - Legacy enrollment-link registration removed from UI and rejected by backend.
+PASS - Employee face registration does not request geolocation.
+PASS - Five quality-checked samples captured and averaged.
+PASS - Multiple-face / low-light / too-far / off-center hints handled.
+PASS - Laptop camera falls back to generic camera constraints.
+PASS - face-api engine/model CDN fallbacks configured.
+PASS - Descriptor consistency check before save.
+PASS - Successful registration auto-switches Face Capture Access OFF.
+PASS - Sample count exposed to Admin.
+PASS - Verified details emailed without biometric descriptor.
+
+ATTENDANCE
+PASS - Secure attendance link still requires office geofence.
+PASS - Secure attendance link still matches stored face.
+PASS - Attendance link cannot enroll/replace face.
+PASS - 10:00–10:30 standard window preserved.
+PASS - Sundays/public/company holidays preserved.
+PASS - Late-arrival concession preserved.
+PASS - 8-hour shift checkout preserved.
+
+PRIOR BUGS
+PASS - Employee modal Cancel/X/backdrop/Escape architecture preserved.
+PASS - Modal/toast layering preserved.
+PASS - Admin/HR/Manager access add/disable/enable/delete preserved.
+PASS - Primary/current/last-admin safety preserved.
+PASS - Mail health/test/log preserved.
+PASS - SYSTEM_RUNS descriptions preserved.
+PASS - GitHub Pages production base remains /INCENTIFY_EMS/.
+PASS - Persistent request replay retained.
+PASS - V21 cache namespace invalidates stale V20 assets.
+PASS - Deployment script syncs the renamed INCENTIFY_EMS remote before Robocopy.

@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b477a">
-  <meta name="description" content="INCENTIFY EMS V20 Admin Portal — attendance links, holidays, concessions and workforce control.">
+  <meta name="description" content="INCENTIFY EMS V21 Admin Portal — attendance links, holidays, concessions and workforce control.">
   <meta name="robots" content="noindex,nofollow">
   <title>INCENTIFY EMS — Admin Portal</title>
   <link rel="icon" href="./assets/icon-192.png">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./css/app.css?v=20.0.0">
+  <link rel="stylesheet" href="./css/app.css?v=21.0.0">
 </head>
 <body data-portal="admin">
 <div id="toastStack" class="toast-stack" aria-live="polite"></div>
@@ -68,19 +68,19 @@
     <section id="page-employees" class="page">
       <article class="panel">
         <div class="panel-head employee-head">
-          <div><p class="eyebrow">EMPLOYEE MANAGEMENT</p><h3>Employee Directory</h3><p class="muted">Identity verification is handled only through secure attendance links. The Admin portal contains no camera or recognition controls.</p></div>
+          <div><p class="eyebrow">EMPLOYEE MANAGEMENT</p><h3>Employee Directory</h3><p class="muted">Face capture is controlled here and completed only inside the authenticated Employee Portal. Turn access ON when an employee needs to register or replace their face; turn it OFF to block camera capture. Attendance verification continues to use the stored face profile.</p></div>
           <div class="action-wrap">
             <button id="addEmployeeBtn" class="btn btn-primary">+ Add employee</button>
             <button id="editEmployeeBtn" class="btn btn-secondary" disabled>Edit selected</button>
-            <button id="sendEnrollmentBtn" class="btn btn-secondary" disabled>Send enrollment link</button>
+            <button id="faceCaptureAccessBtn" class="btn btn-secondary" disabled>Enable face capture</button>
             <button id="resendAttendanceBtn" class="btn btn-accent" disabled>Resend today's link</button>
             <button id="deleteEmployeeBtn" class="btn btn-danger" disabled>Delete selected</button>
           </div>
         </div>
-        <div id="selectedEmployeeBar" class="selection-bar"><b>No employee selected</b><span>Select an employee to manage access or attendance links.</span></div>
+        <div id="selectedEmployeeBar" class="selection-bar"><b>No employee selected</b><span>Select an employee to manage face capture access, profile status, or attendance.</span></div>
         <div class="toolbar"><label class="search-box"><span>⌕</span><input id="employeeSearch" type="search" placeholder="Search employee, code, email, department…"></label></div>
         <div class="table-wrap">
-          <table class="data-table"><thead><tr><th class="center">Select</th><th>Code</th><th>Employee</th><th>Email</th><th>Department</th><th>Designation</th><th>Face enrollment</th><th>Status</th></tr></thead><tbody id="employeeTableBody"></tbody></table>
+          <table class="data-table"><thead><tr><th>Code</th><th>Employee</th><th>Email</th><th>Department</th><th>Designation</th><th>Face profile</th><th>Capture access</th><th>Status</th></tr></thead><tbody id="employeeTableBody"></tbody></table>
         </div>
       </article>
     </section>
@@ -139,8 +139,8 @@
 
     <section id="page-reports" class="page">
       <div class="report-grid">
-        <article class="panel report-card"><span class="report-icon">▤</span><h3>Attendance Workbook</h3><p>Generate an Excel workbook and download it securely in this browser. A private Drive archive is retained.</p><button id="exportXlsxBtn" class="btn btn-primary">Download Excel workbook</button><small id="exportStatus" class="muted">Uses current attendance filters.</small></article>
-        <article class="panel report-card"><span class="report-icon">☁</span><h3>Cloud Backup</h3><p>Create a ZIP backup of employees, attendance and settings, archive it privately, and download it securely.</p><button id="cloudBackupBtn" class="btn btn-secondary">Download backup ZIP</button><small id="backupStatus" class="muted">Admin permission required.</small></article>
+        <article class="panel report-card"><span class="report-icon">▤</span><h3>Attendance Workbook</h3><p>Create an Excel attendance workbook in INCENTIFY Drive.</p><button id="exportXlsxBtn" class="btn btn-primary">Generate Excel workbook</button><small id="exportStatus" class="muted">Uses current attendance filters.</small></article>
+        <article class="panel report-card"><span class="report-icon">☁</span><h3>Cloud Backup</h3><p>Create a JSON backup of employees, attendance and settings.</p><button id="cloudBackupBtn" class="btn btn-secondary">Create cloud backup</button><small id="backupStatus" class="muted">Admin permission required.</small></article>
       </div>
     </section>
 
@@ -156,7 +156,7 @@
             <button id="toggleAccessBtn" class="btn btn-secondary" type="button" disabled>Disable selected</button>
             <button id="deleteAccessBtn" class="btn btn-danger" type="button" disabled>Delete selected</button>
           </div>
-          <div class="table-wrap"><table class="data-table"><thead><tr><th class="center">Select</th><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Last login</th></tr></thead><tbody id="accessTableBody"></tbody></table></div>
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Last login</th></tr></thead><tbody id="accessTableBody"></tbody></table></div>
         </article>
         <article class="panel mail-health-panel">
           <div class="panel-head"><div><p class="eyebrow">EMAIL DELIVERY</p><h3>Mail Health</h3><p class="muted">Checks the Apps Script execution account and remaining MailApp quota. Use the test button before relying on attendance-link delivery.</p></div><button id="refreshMailHealthBtn" class="btn btn-ghost" type="button">Refresh</button></div>
@@ -202,7 +202,7 @@
         <article class="panel security-panel">
           <p class="eyebrow">CURRENT OFFICE</p><h3>Configured Geofence</h3>
           <p><b>17°29'54.0"N 78°23'03.8"E</b></p>
-          <p class="muted">Decimal coordinates: 17.4982778, 78.3845000 (17°29'53.8"N 78°23'04.2"E). Attendance IN and OUT require precise mobile location within the configured radius.</p>
+          <p class="muted">Decimal coordinates: 17.4983333, 78.3843889. Attendance IN and OUT require precise mobile location within the configured radius.</p>
           <ul><li>Sunday: automatically closed.</li><li>Custom public/company holidays: closed.</li><li>Standard attendance link: 10:00–10:30.</li><li>Late arrivals require an Admin concession link.</li><li>OUT unlocks only after the full shift duration from actual IN time.</li></ul>
         </article>
       </div>
@@ -272,8 +272,8 @@
   </section>
 </div>
 
-<script src="./js/config.js?v=20.0.0"></script>
-<script src="./js/api-client.js?v=20.0.0"></script>
-<script type="module" src="./js/admin.js?v=20.0.0"></script>
+<script src="./js/config.js?v=21.0.0"></script>
+<script src="./js/api-client.js?v=21.0.0"></script>
+<script type="module" src="./js/admin.js?v=21.0.0"></script>
 </body>
 </html>

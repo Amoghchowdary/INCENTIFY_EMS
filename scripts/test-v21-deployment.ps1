@@ -3,7 +3,7 @@ param(
 )
 $ErrorActionPreference='Stop'
 $url=$Url.Trim()
-if(-not($url -match '^https://script\.google\.com/macros/s/.+/exec$')){throw 'Use the V20 Apps Script /exec URL.'}
+if(-not($url -match '^https://script\.google\.com/macros/s/.+/exec$')){throw 'Use the V21 Apps Script /exec URL.'}
 
 $pass=0;$fail=0;$recovered=0
 for($test=1;$test -le 10;$test++){
@@ -12,11 +12,11 @@ for($test=1;$test -le 10;$test++){
     try{
       $r=Invoke-RestMethod -Uri $url -Method Get -ErrorAction Stop
       if($r.success -eq $true -and
-         $r.service -eq 'INCENTIFY EMS V20 Cloud API' -and
-         $r.version -eq '20.0.0' -and
+         $r.service -eq 'INCENTIFY EMS V21 Cloud API' -and
+         $r.version -eq '21.0.0' -and
          $r.status -eq 'ONLINE' -and
          $r.mutationRetrySafety -eq 'PERSISTENT_REQUEST_REPLAY' -and
-         $r.latencyProfile -eq 'FAST_PATH_V5'){
+         $r.latencyProfile -eq 'FAST_PATH_V6_ADMIN_FACE_CONTROL'){
         if($attempt -gt 1){$recovered++}
         $ok=$true;break
       }
@@ -28,5 +28,5 @@ for($test=1;$test -le 10;$test++){
   Start-Sleep -Milliseconds 350
 }
 Write-Host "PASS=$pass FAIL=$fail RECOVERED_TRANSIENTS=$recovered"
-if($fail -ne 0){throw 'V20 deployment reliability test failed after retry recovery.'}
-Write-Host 'V20 DEPLOYMENT RELIABILITY: 10/10 LOGICAL REQUESTS PASS' -ForegroundColor Green
+if($fail -ne 0){throw 'V21 deployment reliability test failed after retry recovery.'}
+Write-Host 'V21 DEPLOYMENT RELIABILITY: 10/10 LOGICAL REQUESTS PASS' -ForegroundColor Green

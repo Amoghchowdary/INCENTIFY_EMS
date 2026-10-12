@@ -11,24 +11,24 @@
         'bootstrapAdmin','bootstrapEmployee','dashboard','listEmployees',
         'listAttendance','getSettings','listAccessUsers','listHolidays',
         'listAttendanceExceptions','getMyAttendance','getMyCheckoutStatus',
-        'getAttendanceLinkContext','validateAttendanceLocation','downloadExportChunk','mailDiagnostics','listMailLog','listSystemRuns',
+        'getAttendanceLinkContext','getMyFaceRegistrationStatus','mailDiagnostics','listMailLog','listSystemRuns',
         'requestReplayStatus'
       ]);
-      // V20 persists successful mutation results by requestId in REQUEST_REPLAYS.
+      // V21 persists successful mutation results by requestId in REQUEST_REPLAYS.
       // Repeating the same logical request after a lost browser response returns
       // the stored result instead of duplicating the mutation.
       this.replaySafeMutationActions = new Set([
         'createEmployee','updateEmployee','deleteEmployee','sendEnrollmentLink','deleteAttendance',
         'saveSettings','exportAttendanceXlsx','createCloudBackup','checkoutMyAttendance',
         'saveHoliday','deleteHoliday','createLateConcession','resendTodayAttendanceLink',
-        'submitAttendanceLinkFace','createAccessUser','setAccessStatus','deleteAccessUser','sendTestEmail'
+        'submitAttendanceLinkFace','setFaceCaptureAccess','unlockFaceRegistration','lockFaceRegistration','registerMyFace','createAccessUser','setAccessStatus','deleteAccessUser','sendTestEmail'
       ]);
       this.inflightSafe = new Map();
     }
 
     isConfigured() {
       return /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/i.test(this.baseUrl)
-        && !this.baseUrl.includes('PASTE_NEW_V20_APPS_SCRIPT');
+        && !this.baseUrl.includes('PASTE_NEW_V21_APPS_SCRIPT');
     }
 
     waitReady(timeout = 12000) {
@@ -72,24 +72,24 @@
       } else {
         for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
       }
-      return `ems20_${Date.now()}_${[...bytes].map(b => b.toString(16).padStart(2, '0')).join('')}`;
+      return `ems21_${Date.now()}_${[...bytes].map(b => b.toString(16).padStart(2, '0')).join('')}`;
     }
 
     _callbackName(attempt) {
       const suffix = `${Date.now()}_${++this.seq}_${attempt}_${Math.random().toString(36).slice(2)}`.replace(/[^A-Za-z0-9_]/g, '');
-      return `__incentify_ems_v20_cb_${suffix}`;
+      return `__incentify_ems_v21_cb_${suffix}`;
     }
 
     _jsonUrl(encoded, attempt) {
       const sep = this.baseUrl.includes('?') ? '&' : '?';
       const nonce = `${Date.now()}_${attempt}_${Math.random().toString(36).slice(2)}`;
-      return `${this.baseUrl}${sep}api=1&payload=${encodeURIComponent(encoded)}&v=${encodeURIComponent(window.INCENTIFY_EMS_CONFIG.BACKEND_VERSION || '20.0.0')}&transport=json&retry=${attempt}&_=${encodeURIComponent(nonce)}`;
+      return `${this.baseUrl}${sep}api=1&payload=${encodeURIComponent(encoded)}&v=${encodeURIComponent(window.INCENTIFY_EMS_CONFIG.BACKEND_VERSION || '21.0.0')}&transport=json&retry=${attempt}&_=${encodeURIComponent(nonce)}`;
     }
 
     _jsonpUrl(callback, encoded, attempt) {
       const sep = this.baseUrl.includes('?') ? '&' : '?';
       const nonce = `${Date.now()}_${attempt}_${Math.random().toString(36).slice(2)}`;
-      return `${this.baseUrl}${sep}api=1&callback=${encodeURIComponent(callback)}&payload=${encodeURIComponent(encoded)}&v=${encodeURIComponent(window.INCENTIFY_EMS_CONFIG.BACKEND_VERSION || '20.0.0')}&transport=jsonp&retry=${attempt}&_=${encodeURIComponent(nonce)}`;
+      return `${this.baseUrl}${sep}api=1&callback=${encodeURIComponent(callback)}&payload=${encodeURIComponent(encoded)}&v=${encodeURIComponent(window.INCENTIFY_EMS_CONFIG.BACKEND_VERSION || '21.0.0')}&transport=jsonp&retry=${attempt}&_=${encodeURIComponent(nonce)}`;
     }
 
     async _fetchOnce(encoded, timeout, attempt) {
@@ -169,7 +169,7 @@
         }
         if (attempt < this.maxSafeAttempts) await this._sleep(180 * attempt);
       }
-      const finalError = this._networkError('Could not reach the INCENTIFY EMS V20 backend after automatic recovery attempts.');
+      const finalError = this._networkError('Could not reach the INCENTIFY EMS V21 backend after automatic recovery attempts.');
       finalError.cause = lastError || undefined;
       throw finalError;
     }
@@ -188,7 +188,7 @@
       const startedAt = Date.now();
       let lastError = null;
       const remaining = () => Math.max(0, timeout - (Date.now() - startedAt));
-      const isFace = action === 'submitAttendanceLinkFace';
+      const isFace = action === 'submitAttendanceLinkFace' || action === 'registerMyFace';
       const firstTimeout = isFace ? 28000 : 14000;
       const fallbackTimeout = isFace ? 18000 : 10000;
 
@@ -234,19 +234,19 @@
       const finalError = this._networkError(
         isFace
           ? 'Secure face submission could not be confirmed after recovery attempts. Keep this page open and retry once; the backend will not duplicate a completed enrollment.'
-          : 'The request could not be confirmed after automatic recovery attempts. Retrying the same action is safe in V20.'
+          : 'The request could not be confirmed after automatic recovery attempts. Retrying the same action is safe in V21.'
       );
       finalError.cause = lastError || undefined;
       throw finalError;
     }
 
     async call(action, payload = {}, timeout = 30000) {
-      if (!this.isConfigured()) throw new Error('V20 backend URL is not configured. Set the Apps Script /exec URL in js/config.js.');
+      if (!this.isConfigured()) throw new Error('V21 backend URL is not configured. Set the Apps Script /exec URL in js/config.js.');
       const a = String(action || '');
       const requestId = this._requestId();
       const request = { action: a, requestId, ...(payload || {}) };
       const encoded = this._encode(request);
-      if (encoded.length > 11000) throw new Error('Request payload is too large for the V20 browser API transport.');
+      if (encoded.length > 11000) throw new Error('Request payload is too large for the V21 browser API transport.');
 
       // Coalesce identical health/bootstrap reads started in the same UI tick.
       if (this.safeRetryActions.has(a) && ['health','bootstrapAdmin','bootstrapEmployee'].includes(a)) {

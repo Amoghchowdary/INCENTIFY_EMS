@@ -1,16 +1,34 @@
-# INCENTIFY EMS V20.0.0 — Production Capture & Download Reliability
+# INCENTIFY EMS V21.0.0 — GitHub Frontend
 
-Frontend-only GitHub Pages application for INCENTIFY PRIVATE LIMITED.
+V21 makes employee facial registration an Admin-controlled capability inside the authenticated Employee Portal.
 
-Production improvements in V20:
-- Exact office geofence center: 17.4982778, 78.3845000.
-- Employee confirmation, precise-location consent and biometric-consent checkboxes before capture.
-- Server validates location before camera verification starts.
-- Face enrollment: 7 quality-gated frames; normal attendance verification: 5 frames.
-- Detection confidence, lighting, descriptor consistency and active movement challenge are checked.
-- Browser active movement is a quality/liveness signal, not a claim of depth-sensor anti-spoofing.
-- Employee and access management rows have explicit selection checkboxes.
-- Attendance XLSX and backup ZIP use authenticated chunked browser downloads instead of opening private Drive URLs.
-- SHA-256 integrity verification is performed by the browser when Web Crypto is available.
+## Face workflow
+1. Admin selects an employee.
+2. Admin clicks **Enable face capture**.
+3. Employee Portal detects the server-side ON state.
+4. Employee clicks **Capture & verify face**.
+5. The camera captures five quality-checked samples with no location request.
+6. The averaged face descriptor is stored securely through the V21 Apps Script API.
+7. Face Capture Access automatically returns to OFF after a successful registration.
+8. Verified employee details are emailed to the employee and configured Admin copy. The biometric descriptor is never emailed.
+9. Admin can enable capture again later to replace/update the face.
 
-Backend must be upgraded to V20 before publishing this frontend.
+Legacy enrollment-link capture is disabled. Attendance links still use office location + the stored face profile for attendance IN.
+
+## Local verification
+```powershell
+node .\scripts\verify-v21.mjs
+node .\scripts\test-api-client-v21.mjs
+Set-ExecutionPolicy -Scope Process Bypass -Force
+.\scripts\test-v21-deployment.ps1
+.\scripts\test-v21-backend.ps1
+```
+
+## Deployment
+Source folder:
+`C:\Users\MYPC\Desktop\Incentify_EMS\INCENTIFY_EMS_V21_GitHub_Frontend`
+
+Git deployment clone remains under:
+`C:\Users\MYPC\Desktop\Incentify_EMS\Deployment_Folder`
+
+Run `scripts\deploy-v21-to-git.ps1` to Robocopy the verified frontend into the existing Git clone while preserving `.git`.

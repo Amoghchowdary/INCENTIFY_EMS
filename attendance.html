@@ -8,7 +8,7 @@
   <title>INCENTIFY — Secure Attendance Capture</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="icon" href="./assets/icon-192.png">
-  <link rel="stylesheet" href="./css/app.css?v=20.0.0">
+  <link rel="stylesheet" href="./css/app.css?v=21.0.0">
 </head>
 <body class="attendance-link-body">
 <div id="toastStack" class="toast-stack" aria-live="polite"></div>
@@ -26,20 +26,8 @@
       </div>
 
       <div class="location-check-card">
-        <div><small>Office validation</small><b id="linkLocationState">Not checked</b><p id="linkLocationDetail" class="muted">Precise mobile location is required and is validated by the server.</p></div>
+        <div><small>Office validation</small><b id="linkLocationState">Not checked</b><p id="linkLocationDetail" class="muted">Precise mobile location is required.</p></div>
         <button id="linkCheckLocationBtn" class="btn btn-secondary">Check location</button>
-      </div>
-
-      <div class="attendance-consent-card" id="linkConsentCard">
-        <div class="consent-head"><div><small>Before verification</small><b>Confirm all three items</b></div><span id="linkSamplePolicy" class="badge badge-neutral">Loading face policy…</span></div>
-        <label class="consent-check"><input id="consentIdentity" type="checkbox"><span><b>I confirm I am the employee named above.</b><small>Do not use another person's attendance link.</small></span></label>
-        <label class="consent-check"><input id="consentLocation" type="checkbox"><span><b>I allow precise location validation for this attendance event.</b><small>The server checks GPS accuracy and office-geofence distance.</small></span></label>
-        <label class="consent-check"><input id="consentBiometric" type="checkbox"><span><b>I consent to biometric face verification for attendance.</b><small>Only the face descriptor required for verification is submitted; the camera image is not uploaded by this page.</small></span></label>
-      </div>
-
-      <div id="linkQualityBox" class="face-quality-card">
-        <div><small>Active face verification</small><b id="linkChallengeText">Complete the checklist to begin.</b></div>
-        <div class="quality-grid"><span>Samples <b id="qualitySamples">0 / —</b></span><span>Detection <b id="qualityDetection">—</b></span><span>Lighting <b id="qualityLighting">—</b></span><span>Consistency <b id="qualityConsistency">—</b></span></div>
       </div>
 
       <div class="self-camera-wrap attendance-link-camera">
@@ -49,8 +37,8 @@
         <div id="linkCaptureProgress" class="enroll-progress">Ready</div>
       </div>
 
-      <button id="linkCaptureBtn" class="btn btn-primary btn-block" disabled>Verify location & face</button>
-      <p class="muted attendance-link-privacy">The link is employee-specific and expires automatically. Location must be inside the configured office geofence. Active movement checks improve capture quality, but browser-camera verification is not equivalent to dedicated depth-sensor anti-spoofing hardware.</p>
+      <button id="linkCaptureBtn" class="btn btn-primary btn-block">Verify location & face</button>
+      <p class="muted attendance-link-privacy">The link is employee-specific and expires automatically. Location must be inside the configured office geofence. The Admin and Employee portals do not run face recognition.</p>
     </div>
 
     <div id="linkSuccess" class="success-panel hidden">
@@ -58,8 +46,8 @@
     </div>
   </section>
 </main>
-<script src="./js/config.js?v=20.0.0"></script>
-<script src="./js/api-client.js?v=20.0.0"></script>
-<script type="module" src="./js/attendance.js?v=20.0.0"></script>
+<script src="./js/config.js?v=21.0.0"></script>
+<script src="./js/api-client.js?v=21.0.0"></script>
+<script type="module" src="./js/attendance.js?v=21.0.0"></script>
 </body>
 </html>
